@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package note;
+
+// NoteService provides CRUD operations for managing notes
+service NoteService {
+  // CreateNote creates a new note with the provided title and content
+  // Returns the created note with generated ID and timestamps
+  rpc CreateNote(CreateNoteRequest) returns (CreateNoteResponse);
+  
+  // GetNote retrieves a note by its unique identifier
+  // Returns NOT_FOUND error if the note does not exist
+  rpc GetNote(GetNoteRequest) returns (GetNoteResponse);
+  
+  // ListNotes retrieves all notes stored in the system
+  // Returns an empty list if no notes exist
+  rpc ListNotes(ListNotesRequest) returns (ListNotesResponse);
+  
+  // UpdateNote updates an existing note's title and content
+  // Returns NOT_FOUND error if the note does not exist
+  rpc UpdateNote(UpdateNoteRequest) returns (UpdateNoteResponse);
+  
+  // DeleteNote removes a note from the system
+  // Returns NOT_FOUND error if the note does not exist
+  rpc DeleteNote(DeleteNoteRequest) returns (DeleteNoteResponse);
+}
+
+// Note represents a note entity with all its properties
+message Note {
+  // Unique identifier for the note (UUID v4 format)
+  string id = 1;
+  
+  // Title of the note (max 200 characters)
+  string title = 2;
+  
+  // Content of the note (max 10000 characters)
+  string content = 3;
+  
+  // Creation timestamp in milliseconds since Unix epoch
+  int64 created_at = 4;
+  
+  // Last update timestamp in milliseconds since Unix epoch
+  int64 updated_at = 5;
+}
+
+// CreateNoteRequest contains the data needed to create a new note
+message CreateNoteRequest {
+  // Title of the note to create
+  string title = 1;
+  
+  // Content of the note to create
+  string content = 2;
+}
+
+// CreateNoteResponse contains the newly created note
+message CreateNoteResponse {
+  // The created note with generated ID and timestamps
+  Note note = 1;
+}
+
+// GetNoteRequest contains the identifier of the note to retrieve
+message GetNoteRequest {
+  // Unique identifier of the note to retrieve
+  string id = 1;
+}
+
+// GetNoteResponse contains the requested note
+message GetNoteResponse {
+  // The requested note
+  Note note = 1;
+}
+
+// ListNotesRequest is empty as it retrieves all notes
+message ListNotesRequest {
+  // No parameters needed for listing all notes
+}
+
+// ListNotesResponse contains all notes in the system
+message ListNotesResponse {
+  // List of all notes
+  repeated Note notes = 1;
+}
+
+// UpdateNoteRequest contains the note ID and new data to update
+message UpdateNoteRequest {
+  // Unique identifier of the note to update
+  string id = 1;
+  
+  // New title for the note
+  string title = 2;
+  
+  // New content for the note
+  string content = 3;
+}
+
+// UpdateNoteResponse contains the updated note
+message UpdateNoteResponse {
+  // The updated note with new timestamp
+  Note note = 1;
+}
+
+// DeleteNoteRequest contains the identifier of the note to delete
+message DeleteNoteRequest {
+  // Unique identifier of the note to delete
+  string id = 1;
+}
+
+// DeleteNoteResponse indicates the success of the delete operation
+message DeleteNoteResponse {
+  // True if the note was successfully deleted
+  bool success = 1;
+}
