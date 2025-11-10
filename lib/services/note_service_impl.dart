@@ -25,7 +25,7 @@ class NoteServiceImpl extends NoteServiceBase {
 
       if (!validationResult.isValid) {
         final errorMessage = validationResult.errors
-            .map((e) => '${e.field}: ${e.message}')
+            .map((e) => '[${e.code.name}] ${e.field}: ${e.message}')
             .join('; ');
         throw GrpcError.invalidArgument(errorMessage);
       }
@@ -96,7 +96,7 @@ class NoteServiceImpl extends NoteServiceBase {
 
       if (!validationResult.isValid) {
         final errorMessage = validationResult.errors
-            .map((e) => '${e.field}: ${e.message}')
+            .map((e) => '[${e.code.name}] ${e.field}: ${e.message}')
             .join('; ');
         throw GrpcError.invalidArgument(errorMessage);
       }

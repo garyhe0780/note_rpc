@@ -127,7 +127,7 @@ void main() {
     test('isValid returns correct value', () {
       final success = ValidationSuccess('hello');
       final failure = ValidationFailure<String>([
-        const ValidationError(field: 'test', message: 'error'),
+        const ValidationError(field: 'test', message: 'error', code: ValidationErrorCode.custom),
       ]);
 
       expect(success.isValid, isTrue);
@@ -141,7 +141,7 @@ void main() {
 
     test('value throws on failure', () {
       final result = ValidationFailure<String>([
-        const ValidationError(field: 'test', message: 'error'),
+        const ValidationError(field: 'test', message: 'error', code: ValidationErrorCode.custom),
       ]);
 
       expect(() => result.value, throwsA(isA<ValidationException>()));
@@ -150,7 +150,7 @@ void main() {
     test('valueOrNull returns null on failure', () {
       final success = ValidationSuccess('hello');
       final failure = ValidationFailure<String>([
-        const ValidationError(field: 'test', message: 'error'),
+        const ValidationError(field: 'test', message: 'error', code: ValidationErrorCode.custom),
       ]);
 
       expect(success.valueOrNull, equals('hello'));
@@ -163,7 +163,7 @@ void main() {
     });
 
     test('errors returns error list on failure', () {
-      final error = const ValidationError(field: 'test', message: 'error');
+      final error = const ValidationError(field: 'test', message: 'error', code: ValidationErrorCode.custom);
       final result = ValidationFailure<String>([error]);
 
       expect(result.errors, hasLength(1));
@@ -174,8 +174,8 @@ void main() {
   group('ValidationException', () {
     test('formats error message correctly', () {
       final exception = ValidationException([
-        const ValidationError(field: 'title', message: 'Too short'),
-        const ValidationError(field: 'content', message: 'Too long'),
+        const ValidationError(field: 'title', message: 'Too short', code: ValidationErrorCode.tooShort),
+        const ValidationError(field: 'content', message: 'Too long', code: ValidationErrorCode.tooLong),
       ]);
 
       expect(exception.message, contains('title: Too short'));

@@ -32,6 +32,7 @@ class NoteValidators {
           (e) => ValidationError(
             field: 'title',
             message: e.message,
+            code: e.code,
             value: e.value,
           ),
         ),
@@ -46,6 +47,7 @@ class NoteValidators {
           (e) => ValidationError(
             field: 'content',
             message: e.message,
+            code: e.code,
             value: e.value,
           ),
         ),
@@ -61,6 +63,7 @@ class NoteValidators {
         const ValidationError(
           field: 'note',
           message: 'Both title and content cannot be empty',
+          code: ValidationErrorCode.required,
         ),
       );
     }
@@ -84,7 +87,11 @@ class NoteValidators {
     // Validate ID (must be non-empty)
     if (id.trim().isEmpty) {
       errors.add(
-        const ValidationError(field: 'id', message: 'Note ID cannot be empty'),
+        const ValidationError(
+          field: 'id',
+          message: 'Note ID cannot be empty',
+          code: ValidationErrorCode.required,
+        ),
       );
     }
 
@@ -96,6 +103,7 @@ class NoteValidators {
           (e) => ValidationError(
             field: 'title',
             message: e.message,
+            code: e.code,
             value: e.value,
           ),
         ),
@@ -110,6 +118,7 @@ class NoteValidators {
           (e) => ValidationError(
             field: 'content',
             message: e.message,
+            code: e.code,
             value: e.value,
           ),
         ),
@@ -125,6 +134,7 @@ class NoteValidators {
         const ValidationError(
           field: 'note',
           message: 'Both title and content cannot be empty',
+          code: ValidationErrorCode.required,
         ),
       );
     }
@@ -146,7 +156,11 @@ class NoteValidators {
 
     if (trimmedId.isEmpty) {
       return const ValidationFailure([
-        ValidationError(field: 'id', message: 'Note ID cannot be empty'),
+        ValidationError(
+          field: 'id',
+          message: 'Note ID cannot be empty',
+          code: ValidationErrorCode.required,
+        ),
       ]);
     }
 
