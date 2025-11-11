@@ -1,3 +1,4 @@
+import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import '../generated/note_service.pbgrpc.dart';
 import '../repositories/note_repository.dart';
@@ -137,6 +138,41 @@ class NoteServiceImpl extends NoteServiceBase {
     } catch (e) {
       if (e is GrpcError) rethrow;
       throw GrpcError.internal('Failed to delete note: ${e.toString()}');
+    }
+  }
+
+  @override
+  Stream<NoteEvent> watchNotes(
+    ServiceCall call,
+    WatchNotesRequest request,
+  ) async* {
+    try {
+      final noteId = request.noteId.isEmpty ? null : request.noteId;
+
+      // Listen to repository change stream
+      await for (final change in _repository.changeStream) {
+        // Filter by note ID if specified
+        if (noteId != null && change.note.id != noteId) {
+          continue;
+        }
+
+        // Convert change type to proto event type
+        final eventType = switch (change.type) {
+          NoteChangeType.created => NoteEventType.CREATED,
+          NoteChangeType.updated => NoteEventType.UPDATED,
+          NoteChangeType.deleted => NoteEventType.DELETED,
+        };
+
+        // Emit the event
+        yield NoteEvent(
+          eventType: eventType,
+          note: change.note.toProto(),
+          timestamp: Int64(change.timestamp.millisecondsSinceEpoch),
+        );
+      }
+    } catch (e) {
+      if (e is GrpcError) rethrow;
+      throw GrpcError.internal('Failed to watch notes: ${e.toString()}');
     }
   }
 }

@@ -5,11 +5,12 @@ A high-performance gRPC-based note management API server implemented in Dart. Th
 ## Features
 
 - **Full CRUD Operations**: Create, read, update, and delete notes via gRPC
+- **Real-Time Streaming**: Server streaming for real-time note updates (create, update, delete events)
 - **Protocol Buffers**: Strongly-typed API definitions using Protocol Buffers
 - **Concurrent Access**: Thread-safe operations supporting 100+ concurrent connections
-- **In-Memory Storage**: Fast in-memory data storage with UUID-based identifiers
+- **Dual Storage Options**: In-memory storage for development and PostgreSQL for production
 - **Error Handling**: Comprehensive error handling with proper gRPC status codes
-- **Example Client**: Fully functional example client demonstrating all operations
+- **Example Clients**: Fully functional example clients demonstrating all operations including streaming
 
 ## Table of Contents
 
@@ -18,6 +19,7 @@ A high-performance gRPC-based note management API server implemented in Dart. Th
 - [Generating Code from Proto Files](#generating-code-from-proto-files)
 - [Running the Server](#running-the-server)
 - [Running the Example Client](#running-the-example-client)
+- [Real-Time Streaming](#real-time-streaming)
 - [API Documentation](#api-documentation)
 - [Configuration Options](#configuration-options)
 - [Project Structure](#project-structure)
@@ -146,6 +148,39 @@ The example client demonstrates:
 7. Updating non-existent notes (error handling)
 8. Deleting notes
 9. Deleting non-existent notes (error handling)
+
+## Real-Time Streaming
+
+The server supports gRPC server streaming for real-time note updates. Clients can subscribe to note changes and receive instant notifications.
+
+### Running the Streaming Client
+
+```bash
+# Start the server
+dart run bin/server.dart
+
+# In another terminal, run the streaming client
+dart run bin/streaming_client.dart
+```
+
+### What the Streaming Client Does
+
+The streaming client demonstrates:
+1. Subscribing to real-time note updates
+2. Receiving CREATE events when notes are created
+3. Receiving UPDATE events when notes are modified
+4. Receiving DELETE events when notes are removed
+5. Displaying event timestamps and note details
+
+### Streaming Features
+
+- **Event Types**: CREATED, UPDATED, DELETED
+- **Filtering**: Optional filtering by specific note ID
+- **Timestamps**: Each event includes millisecond-precision timestamp
+- **Multiple Clients**: Multiple clients can watch simultaneously
+- **Broadcast Support**: Efficient handling of multiple subscribers
+
+For detailed streaming documentation, see [STREAMING_GUIDE.md](STREAMING_GUIDE.md).
 
 ### Example Output
 
@@ -330,6 +365,68 @@ print('Deleted: ${response.success}');
 
 **Error Cases:**
 - `NOT_FOUND`: Note with specified ID does not exist
+
+---
+
+#### 6. WatchNotes (Server Streaming)
+
+Streams real-time updates for note changes. Returns a stream of events for create, update, and delete operations.
+
+**Request:**
+```protobuf
+message WatchNotesRequest {
+  string note_id = 1;  // Optional: filter by specific note ID (empty = watch all)
+}
+```
+
+**Response (Stream):**
+```protobuf
+message NoteEvent {
+  NoteEventType event_type = 1;  // CREATED, UPDATED, or DELETED
+  Note note = 2;                 // The affected note
+  int64 timestamp = 3;           // Event timestamp (milliseconds)
+}
+
+enum NoteEventType {
+  UNKNOWN = 0;
+  CREATED = 1;
+  UPDATED = 2;
+  DELETED = 3;
+}
+```
+
+**Example (Dart):**
+```dart
+// Watch all notes
+final request = WatchNotesRequest();
+final stream = client.watchNotes(request);
+
+await for (final event in stream) {
+  switch (event.eventType) {
+    case NoteEventType.CREATED:
+      print('Note created: ${event.note.title}');
+      break;
+    case NoteEventType.UPDATED:
+      print('Note updated: ${event.note.title}');
+      break;
+    case NoteEventType.DELETED:
+      print('Note deleted: ${event.note.id}');
+      break;
+  }
+}
+
+// Watch specific note
+final filteredRequest = WatchNotesRequest()..noteId = 'note-uuid-here';
+final filteredStream = client.watchNotes(filteredRequest);
+```
+
+**Features:**
+- Real-time event delivery
+- Optional filtering by note ID
+- Multiple concurrent watchers supported
+- Broadcast stream for efficient multi-client support
+
+For detailed streaming documentation, see [STREAMING_GUIDE.md](STREAMING_GUIDE.md).
 
 ---
 

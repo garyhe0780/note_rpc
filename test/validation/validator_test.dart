@@ -125,9 +125,13 @@ void main() {
 
   group('ValidationResult', () {
     test('isValid returns correct value', () {
-      final success = ValidationSuccess('hello');
-      final failure = ValidationFailure<String>([
-        const ValidationError(field: 'test', message: 'error', code: ValidationErrorCode.custom),
+      final success = const ValidationSuccess('hello');
+      final failure = const ValidationFailure<String>([
+        ValidationError(
+          field: 'test',
+          message: 'error',
+          code: ValidationErrorCode.custom,
+        ),
       ]);
 
       expect(success.isValid, isTrue);
@@ -135,22 +139,30 @@ void main() {
     });
 
     test('value returns data on success', () {
-      final result = ValidationSuccess('hello');
+      final result = const ValidationSuccess('hello');
       expect(result.value, equals('hello'));
     });
 
     test('value throws on failure', () {
-      final result = ValidationFailure<String>([
-        const ValidationError(field: 'test', message: 'error', code: ValidationErrorCode.custom),
+      final result = const ValidationFailure<String>([
+        ValidationError(
+          field: 'test',
+          message: 'error',
+          code: ValidationErrorCode.custom,
+        ),
       ]);
 
       expect(() => result.value, throwsA(isA<ValidationException>()));
     });
 
     test('valueOrNull returns null on failure', () {
-      final success = ValidationSuccess('hello');
-      final failure = ValidationFailure<String>([
-        const ValidationError(field: 'test', message: 'error', code: ValidationErrorCode.custom),
+      final success = const ValidationSuccess('hello');
+      final failure = const ValidationFailure<String>([
+        ValidationError(
+          field: 'test',
+          message: 'error',
+          code: ValidationErrorCode.custom,
+        ),
       ]);
 
       expect(success.valueOrNull, equals('hello'));
@@ -158,12 +170,16 @@ void main() {
     });
 
     test('errors returns empty list on success', () {
-      final result = ValidationSuccess('hello');
+      final result = const ValidationSuccess('hello');
       expect(result.errors, isEmpty);
     });
 
     test('errors returns error list on failure', () {
-      final error = const ValidationError(field: 'test', message: 'error', code: ValidationErrorCode.custom);
+      final error = const ValidationError(
+        field: 'test',
+        message: 'error',
+        code: ValidationErrorCode.custom,
+      );
       final result = ValidationFailure<String>([error]);
 
       expect(result.errors, hasLength(1));
@@ -173,9 +189,17 @@ void main() {
 
   group('ValidationException', () {
     test('formats error message correctly', () {
-      final exception = ValidationException([
-        const ValidationError(field: 'title', message: 'Too short', code: ValidationErrorCode.tooShort),
-        const ValidationError(field: 'content', message: 'Too long', code: ValidationErrorCode.tooLong),
+      final exception = const ValidationException([
+        ValidationError(
+          field: 'title',
+          message: 'Too short',
+          code: ValidationErrorCode.tooShort,
+        ),
+        ValidationError(
+          field: 'content',
+          message: 'Too long',
+          code: ValidationErrorCode.tooLong,
+        ),
       ]);
 
       expect(exception.message, contains('title: Too short'));

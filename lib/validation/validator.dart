@@ -1,5 +1,6 @@
 /// Validation framework inspired by Zod (TypeScript)
 /// Provides fluent API for schema validation with detailed error messages.
+library;
 
 /// Error codes for validation failures.
 enum ValidationErrorCode {
@@ -94,6 +95,7 @@ final class ValidationSuccess<T> extends ValidationResult<T> {
 
 /// Failed validation result.
 final class ValidationFailure<T> extends ValidationResult<T> {
+  @override
   final List<ValidationError> errors;
   const ValidationFailure(this.errors);
 }

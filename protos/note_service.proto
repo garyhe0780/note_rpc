@@ -23,6 +23,10 @@ service NoteService {
   // DeleteNote removes a note from the system
   // Returns NOT_FOUND error if the note does not exist
   rpc DeleteNote(DeleteNoteRequest) returns (DeleteNoteResponse);
+  
+  // WatchNotes streams real-time updates for note changes
+  // Returns a stream of NoteEvent messages for create, update, and delete operations
+  rpc WatchNotes(WatchNotesRequest) returns (stream NoteEvent);
 }
 
 // Note represents a note entity with all its properties
@@ -109,4 +113,37 @@ message DeleteNoteRequest {
 message DeleteNoteResponse {
   // True if the note was successfully deleted
   bool success = 1;
+}
+
+// WatchNotesRequest initiates a stream of note updates
+message WatchNotesRequest {
+  // Optional: filter by specific note ID (empty = watch all notes)
+  string note_id = 1;
+}
+
+// NoteEventType indicates the type of change that occurred
+enum NoteEventType {
+  // Unknown event type (should not be used)
+  UNKNOWN = 0;
+  
+  // A new note was created
+  CREATED = 1;
+  
+  // An existing note was updated
+  UPDATED = 2;
+  
+  // A note was deleted
+  DELETED = 3;
+}
+
+// NoteEvent represents a real-time update event for a note
+message NoteEvent {
+  // Type of event that occurred
+  NoteEventType event_type = 1;
+  
+  // The note that was affected (null for DELETED events after deletion)
+  Note note = 2;
+  
+  // Timestamp when the event occurred in milliseconds since Unix epoch
+  int64 timestamp = 3;
 }

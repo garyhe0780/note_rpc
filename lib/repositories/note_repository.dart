@@ -3,9 +3,28 @@ import 'package:postgres/postgres.dart';
 import 'package:uuid/uuid.dart';
 import '../models/note.dart';
 
+/// Event types for note changes
+enum NoteChangeType { created, updated, deleted }
+
+/// Represents a change event for a note
+class NoteChangeEvent {
+  final NoteChangeType type;
+  final Note note;
+  final DateTime timestamp;
+
+  NoteChangeEvent({
+    required this.type,
+    required this.note,
+    required this.timestamp,
+  });
+}
+
 /// Abstract interface for note data access operations.
 /// Implementations should provide thread-safe CRUD operations for notes.
 abstract class NoteRepository {
+  /// Stream of note change events for real-time updates
+  Stream<NoteChangeEvent> get changeStream;
+
   /// Creates a new note with the given title and content.
   /// Generates a unique ID and timestamps automatically.
   /// Returns the created note.
@@ -38,6 +57,19 @@ class InMemoryNoteRepository implements NoteRepository {
   // Completer-based lock for synchronization
   Completer<void>? _lock;
 
+  // Stream controller for broadcasting note changes
+  final _changeController = StreamController<NoteChangeEvent>.broadcast();
+
+  @override
+  Stream<NoteChangeEvent> get changeStream => _changeController.stream;
+
+  /// Emits a change event to all listeners
+  void _emitChange(NoteChangeType type, Note note) {
+    _changeController.add(
+      NoteChangeEvent(type: type, note: note, timestamp: DateTime.now()),
+    );
+  }
+
   /// Acquires a lock for thread-safe operations.
   Future<void> _acquireLock() async {
     while (_lock != null) {
@@ -65,7 +97,9 @@ class InMemoryNoteRepository implements NoteRepository {
         createdAt: now,
         updatedAt: now,
       );
-      return _storage[note.id] = note;
+      _storage[note.id] = note;
+      _emitChange(NoteChangeType.created, note);
+      return note;
     } finally {
       _releaseLock();
     }
@@ -95,14 +129,17 @@ class InMemoryNoteRepository implements NoteRepository {
   Future<Note?> update(String id, String title, String content) async {
     await _acquireLock();
     try {
-      return switch (_storage[id]) {
-        null => null,
-        final existingNote => _storage[id] = existingNote.copyWith(
-          title: title,
-          content: content,
-          updatedAt: DateTime.now(),
-        ),
-      };
+      final existingNote = _storage[id];
+      if (existingNote == null) return null;
+
+      final updatedNote = existingNote.copyWith(
+        title: title,
+        content: content,
+        updatedAt: DateTime.now(),
+      );
+      _storage[id] = updatedNote;
+      _emitChange(NoteChangeType.updated, updatedNote);
+      return updatedNote;
     } finally {
       _releaseLock();
     }
@@ -112,10 +149,20 @@ class InMemoryNoteRepository implements NoteRepository {
   Future<bool> delete(String id) async {
     await _acquireLock();
     try {
-      return _storage.remove(id) != null;
+      final note = _storage.remove(id);
+      if (note != null) {
+        _emitChange(NoteChangeType.deleted, note);
+        return true;
+      }
+      return false;
     } finally {
       _releaseLock();
     }
+  }
+
+  /// Closes the stream controller
+  void dispose() {
+    _changeController.close();
   }
 }
 
@@ -124,6 +171,19 @@ class InMemoryNoteRepository implements NoteRepository {
 class PostgresNoteRepository implements NoteRepository {
   final Connection _connection;
   final _uuid = const Uuid();
+
+  // Stream controller for broadcasting note changes
+  final _changeController = StreamController<NoteChangeEvent>.broadcast();
+
+  @override
+  Stream<NoteChangeEvent> get changeStream => _changeController.stream;
+
+  /// Emits a change event to all listeners
+  void _emitChange(NoteChangeType type, Note note) {
+    _changeController.add(
+      NoteChangeEvent(type: type, note: note, timestamp: DateTime.now()),
+    );
+  }
 
   PostgresNoteRepository(this._connection);
 
@@ -171,13 +231,16 @@ class PostgresNoteRepository implements NoteRepository {
       },
     );
 
-    return Note(
+    final note = Note(
       id: id,
       title: title,
       content: content,
       createdAt: now,
       updatedAt: now,
     );
+
+    _emitChange(NoteChangeType.created, note);
+    return note;
   }
 
   @override
@@ -222,21 +285,35 @@ class PostgresNoteRepository implements NoteRepository {
       },
     );
 
-    return switch (result) {
+    final note = switch (result) {
       [] => null,
       [final row] => _rowToNote(row),
       _ => throw StateError('Multiple notes updated'),
     };
+
+    if (note != null) {
+      _emitChange(NoteChangeType.updated, note);
+    }
+
+    return note;
   }
 
   @override
   Future<bool> delete(String id) async {
+    // Get the note before deleting to emit the event
+    final note = await getById(id);
+
     final result = await _connection.execute(
       Sql.named('DELETE FROM notes WHERE id = @id'),
       parameters: {'id': id},
     );
 
-    return result.affectedRows > 0;
+    final deleted = result.affectedRows > 0;
+    if (deleted && note != null) {
+      _emitChange(NoteChangeType.deleted, note);
+    }
+
+    return deleted;
   }
 
   /// Converts a database row to a Note object.
@@ -248,8 +325,9 @@ class PostgresNoteRepository implements NoteRepository {
     updatedAt: row[4] as DateTime,
   );
 
-  /// Closes the database connection.
+  /// Closes the database connection and stream controller.
   Future<void> close() async {
+    await _changeController.close();
     await _connection.close();
   }
 }
